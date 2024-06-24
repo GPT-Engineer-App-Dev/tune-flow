@@ -1,20 +1,82 @@
-import React, { useState } from 'react';
-import { Box, Container, VStack, HStack, Text, Input, Button, Image, IconButton, Flex, Spacer } from "@chakra-ui/react";
+import React, { useState, useRef, useEffect } from 'react';
+import { Box, Container, VStack, HStack, Text, Input, Button, Image, IconButton, Flex, Spacer, Slider, SliderTrack, SliderFilledTrack, SliderThumb } from "@chakra-ui/react";
 import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaVolumeUp } from "react-icons/fa";
+import SongList from '../components/SongList';
 
 const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [playlists, setPlaylists] = useState(['Your Playlist']);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [songs, setSongs] = useState([
+    { id: 1, title: "Song 1", artist: "Artist 1", url: "https://example.com/song1.mp3" },
+    { id: 2, title: "Song 2", artist: "Artist 2", url: "https://example.com/song2.mp3" },
+    { id: 3, title: "Song 3", artist: "Artist 3", url: "https://example.com/song3.mp3" },
+  ]);
+  const audioRef = useRef(null);
 
   const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSeek = (value) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value;
+      setCurrentTime(value);
+    }
+  };
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+      audioRef.current.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => {
+        audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+        audioRef.current.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      };
+    }
+  }, []);
 
   const createPlaylist = () => {
     if (newPlaylistName.trim() !== '') {
       setPlaylists([...playlists, newPlaylistName]);
       setNewPlaylistName('');
+    }
+  };
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const playSong = (song) => {
+    setCurrentSong(song);
+    setIsPlaying(true);
+    if (audioRef.current) {
+      audioRef.current.src = song.url;
+      audioRef.current.play();
     }
   };
 
@@ -61,8 +123,8 @@ const Index = () => {
                   src="https://via.placeholder.com/200"
                   alt="Album Cover"
                 />
-                <Text fontSize="2xl" fontWeight="bold">Currently Playing Song</Text>
-                <Text fontSize="lg" color="gray.500">Artist Name</Text>
+                <Text fontSize="2xl" fontWeight="bold">{currentSong?.title || "No song selected"}</Text>
+                <Text fontSize="lg" color="gray.500">{currentSong?.artist || "Select a song to play"}</Text>
                 <HStack spacing={4}>
                   <IconButton icon={<FaStepBackward />} aria-label="Previous song" />
                   <IconButton
@@ -75,16 +137,38 @@ const Index = () => {
                   <IconButton icon={<FaStepForward />} aria-label="Next song" />
                 </HStack>
                 <HStack width="100%" spacing={4}>
-                  <FaVolumeUp />
-                  <Box width="100%" bg="gray.200" height="4px" borderRadius="full">
-                    <Box width="30%" bg="blue.500" height="100%" borderRadius="full" />
-                  </Box>
+                  <Text>{formatTime(currentTime)}</Text>
+                  <Slider value={currentTime} min={0} max={duration} step={1} onChange={handleSeek}>
+                    <SliderTrack>
+                      <SliderFilledTrack />
+                    </SliderTrack>
+                    <SliderThumb />
+                  </Slider>
+                  <Text>{formatTime(duration)}</Text>
                 </HStack>
+                <HStack width="100%" spacing={4}>
+                  <FaVolumeUp />
+                  <Slider defaultValue={30} min={0} max={100} step={1} onChange={(value) => {
+                    if (audioRef.current) {
+                      audioRef.current.volume = value / 100;
+                    }
+                  }}>
+                    <SliderTrack>
+                      <SliderFilledTrack />
+                    </SliderTrack>
+                    <SliderThumb />
+                  </Slider>
+                </HStack>
+                <Box mt={4} width="100%">
+                  <Text fontSize="xl" fontWeight="bold" mb={2}>Song List</Text>
+                  <SongList songs={songs} onPlaySong={playSong} />
+                </Box>
               </VStack>
             </Box>
           </Flex>
         </VStack>
       </Container>
+      <audio ref={audioRef} src={currentSong?.url} />
     </Box>
   );
 };
