@@ -4,9 +4,18 @@ import { FaPlay, FaPause, FaStepForward, FaStepBackward, FaVolumeUp } from "reac
 
 const Index = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [playlists, setPlaylists] = useState(['Your Playlist']);
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const createPlaylist = () => {
+    if (newPlaylistName.trim() !== '') {
+      setPlaylists([...playlists, newPlaylistName]);
+      setNewPlaylistName('');
+    }
   };
 
   return (
@@ -25,14 +34,20 @@ const Index = () => {
           <Flex>
             {/* Playlist */}
             <Box width="30%" bg="white" p={4} borderRadius="md" boxShadow="md">
-              <Text fontSize="xl" fontWeight="bold" mb={4}>Your Playlist</Text>
+              <Text fontSize="xl" fontWeight="bold" mb={4}>Playlists</Text>
+              <Box mb={4}>
+                <HStack>
+                  <Input
+                    placeholder="New playlist name"
+                    value={newPlaylistName}
+                    onChange={(e) => setNewPlaylistName(e.target.value)}
+                  />
+                  <Button colorScheme="blue" onClick={createPlaylist}>Create Playlist</Button>
+                </HStack>
+              </Box>
               <VStack align="stretch" spacing={2}>
-                {['Song 1', 'Song 2', 'Song 3', 'Song 4', 'Song 5'].map((song, index) => (
-                  <HStack key={index} p={2} _hover={{ bg: "gray.100" }} cursor="pointer">
-                    <Text>{song}</Text>
-                    <Spacer />
-                    <Text color="gray.500">3:30</Text>
-                  </HStack>
+                {playlists.map((playlist, index) => (
+                  <Text key={index} fontWeight={index === 0 ? "bold" : "normal"}>{playlist}</Text>
                 ))}
               </VStack>
             </Box>
